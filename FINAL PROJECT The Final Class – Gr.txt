@@ -1,0 +1,704 @@
+// FINAL PROJECT: The Final Class – Graduation Crisis
+// Author: Tasfia Hasan, Alessa Adhikari
+
+
+#include <iostream>        // For input/output stream
+#include <vector>          // To use dynamic array (vector)
+#include <string>          // For using string variables
+#include <cstdlib>         // For random number generation (rand)
+#include <ctime>           // To seed random number generator with time
+#include <algorithm>       // For using shuffle algorithm
+#include <random>          // To get a default random engine
+#include <cctype>          // For converting characters (e.g., tolower)
+
+using namespace std;
+
+// ==================================================================
+// Class for locations on campus
+// Represents each location the player can visit
+// ==================================================================
+class Location {
+public:
+    string name;                // Name of the location
+    string description;         // Description shown when player arrives
+    vector<string> actions;     // List of valid actions the player can take in this location
+
+    // Constructor to initialize location details
+       Location(string n, string d, vector<string> a)
+         : name(n), description(d), actions(a) {}
+
+    // Displays location name and description
+       void display() {
+           cout << "=== " << name << " ===" << endl;
+           cout << description << endl;
+       }
+ };
+
+
+// ==================================================================
+// Class for collectible items
+//  Used to represent key items the player can gather
+// ==================================================================
+class Item {
+public:
+    string name;                // name of the item
+    Item(string n) : name(n) {} // constructor to initialize item name
+};
+
+// ==================================================================
+// Class for NPC (non-player characters)
+// Characters that the player can interact with
+//  ==================================================================
+class NPC {
+public:
+    string locationName;        // Location where this NPC is found
+    string dialogue;            // Dialogue spoken by the NPC
+
+    // Constructor to initialize NPC details
+    NPC(string loc, string d)
+      : locationName(loc), dialogue(d) {}
+
+    // display NPC dialogue
+    void speak() {
+        cout << "[" << locationName << " NPC] " << dialogue << endl;
+    }
+};
+
+// ==================================================================
+// Global game state (score + inventory track changes)
+//  Used across the game for tracking inventory, score, and player name
+//  ==================================================================
+vector<Item> inventory;         // holds collected items
+vector<NPC> npcs;               // Holds all NPCs in world
+int score = 0;                  // Keeps track of the player's points
+string playerName;              // Stores the player's name
+
+// ==================================================================
+// Function to display player's current inventory
+// ==================================================================
+void showInventory() {
+    cout << "--- Inventory ---" << endl;
+    if (inventory.empty()) {
+        cout << "You have nothing yet." << endl;
+    } else {
+        for (auto &it : inventory) {
+            cout << "- " << it.name << endl; // print each item in inventory
+        }
+    }
+}
+
+// ==================================================================
+//  Function to add a new item to inventory and announce it
+// ==================================================================
+void addItem(const string &itemName) { 
+    inventory.emplace_back(itemName);   // add new item to inventory
+    cout << "Inventory updated: " << itemName << endl;   // Confirm to player
+}
+
+
+// ==================================================================
+// All mini-games are defined below – each includes its own logic
+// and modifies score and inventory depending on success/failure.
+// ==================================================================
+
+
+// ==================================================================
+// MINI-GAME 1: Crack the Safe
+// ==================================================================
+void playSafeCrack() {
+    cout << "MINI-GAME: Crack the Safe!" << endl;
+    int secret = rand() % 5 + 1;   // // Generate random number between 1–5
+    cout << "Guess the number between 1 and 5: ";
+    int guess;
+    cin >> guess;
+    cin.ignore();
+    if (guess == secret) {
+        cout << "Correct! You found the Diploma Case!" << endl;
+        score += 15;
+        addItem("Diploma Case");
+    } else {
+        cout << "Wrong! The correct number was " << secret << endl;
+    }
+}
+
+// ==================================================================
+// MINI-GAME 2: Lock-Picking Puzzle
+// ==================================================================
+void playLockPicking() {
+    cout << "MINI-GAME: Lock-Picking Puzzle!" << endl;
+    int secret = rand() % 900 + 100;    // Random 3-digit number (100–999)
+    int guess;
+    do {
+        cout << "Guess the 3-digit combo (100–999): ";
+        cin >> guess;
+        cin.ignore();
+        if (guess < secret) {
+            cout << "Too low!" << endl;
+        } else if (guess > secret) {
+            cout << "Too high!" << endl;
+        }
+    } while (guess != secret);
+    cout << "Correct! You hacked the system and got Blueprints!" << endl;
+    score += 10;
+    addItem("Blueprints");
+}
+
+// ==================================================================
+// MINI-GAME 3: Reaction Challenge
+// ==================================================================
+void playReaction() {
+    cout << "MINI-GAME: Reaction Challenge!" << endl;
+    cout << "Get ready..." << endl;
+    int delay = rand() % 3000 + 1000;   // Wait time before signal (1–4s)
+    clock_t start = clock();           // Record start time
+    while (clock() - start < delay) {
+        //  Intentional delay
+    }
+    cout << "PRESS ENTER NOW!" << endl;
+    cin.get();        // Wait for player input
+    int reaction = (clock() - (start + delay)) * 1000 / CLOCKS_PER_SEC;    // Reaction time
+    cout << "Your reaction time: " << reaction << " ms" << endl;
+    score += 10;
+    addItem("Reaction Badge");
+}
+
+// ==================================================================
+// MINI-GAME 4: Memory Sequence
+// ==================================================================
+void playMemory() {
+    cout << "MINI-GAME: Memory Sequence!" << endl;
+    vector<int> seq(5);        // Generate 5 random numbers
+    for (int &n : seq) {
+        n = rand() % 9 + 1;    // Random digits 1–9
+    }
+    cout << "Let's test your memory!🧠 Memorize this sequence:";
+    for (int n : seq) {
+        cout << " " << n;     // Show sequence to player
+    }
+    cout << endl;
+    cout << "💡Press Enter when ready...";
+    cin.get();                // Wait for player to memorize
+    cout << "Enter the sequence (space-separated): ";
+    vector<int> attempt(5);   // take player's attempt
+    for (int &n : attempt) {
+        cin >> n;
+    }
+    cin.ignore();
+    if (attempt == seq) {      // check if correct
+        cout << "Perfect!✅" << endl;
+        score += 15;     //award points
+        addItem("Memory Medal💪");   // reward item
+    } else {
+        cout << "Oops, that's wrong.❌" << endl;
+    }
+}
+
+// ==================================================================
+// MINI-GAME 5: Word Puzzle
+// ==================================================================
+void playWordPuzzle() {
+    cout << "MINI-GAME: Word Puzzle! 🧩" << endl;
+    vector<string> words = {"crisis","gradcap","diploma","campus","credit"};
+    string target = words[rand() % words.size()];
+    string scrambled = target;
+    shuffle(scrambled.begin(), scrambled.end(),
+            default_random_engine((unsigned)time(nullptr)));
+    cout << "🧐 Unscramble this word: " << scrambled << endl;
+    cout << "Your attempt: ";
+    string attempt;
+    getline(cin, attempt);
+    if (attempt == target) {
+        cout << "Well done!✅" << endl;
+        score += 10;
+        addItem("Word Puzzle Trophy");
+    } else {
+        cout << "Nope ❌, the word was " << target << endl;
+    }
+}
+
+// ==================================================================
+// MINI-GAME 6: CCNY Trivia Quiz
+// ==================================================================
+void playTrivia() {
+    cout << "MINI-GAME: CCNY Trivia Quiz!" << endl; // Title
+    vector<pair<string,string>> q = {
+        {"What year was CCNY founded?", "1847"},
+        {"How many boroughs are in NYC?", "5"}
+    };     // Questions and answers  
+    auto qa = q[rand() % q.size()];   //Select random questio
+    cout << qa.first << endl;
+    cout << "Your answer: ";
+    string ans;
+    getline(cin, ans);   // Get player's answer
+    if (ans == qa.second) {     // Check if correct
+        cout << "Correct!" << endl;   // sucess
+        score += 10;      // award points
+        addItem("Recommendation Letter");  //add item
+    } else {
+        cout << "Wrong ❌, the answer was " << qa.second << endl;  // failure with revealed answer
+    }
+}
+
+// ==================================================================
+// MINI-GAME 7: Math Challenge
+// ==================================================================
+void playMathChallenge() {
+    cout << "MINI-GAME: Math Challenge!➕➖📐" << endl;  // Title
+    int a = rand() % 10 + 1;        // Random numbers a
+    int b = rand() % 10 + 1;         // Random numbers b 
+    cout << "Compute: " << a << " * " << b << " = ? ";        //prompt
+    int ans;       
+    cin >> ans;    
+    cin.ignore();   // read player's answer
+    if (ans == a * b) {    // check if correct
+        cout << "Great!" << endl;   // success
+        score += 10;      // award points
+        addItem("Math Whiz Badge");   // add badge
+    } else {
+        cout << "Oops, answer was " << (a * b) << endl;   // failure with revealed answer
+    }
+}
+
+// ==================================================================
+// MINI-GAME 8: Rock-Paper-Scissors
+// ==================================================================
+void playRockPaperScissors() {
+    cout << "MINI-GAME: Rock-Paper-Scissors!" << endl;    // Title
+    vector<string> opts = {"rock","paper","scissors"};     //options
+    int comp = rand() % 3;     // computer's choice index
+    cout << "Choose rock, paper, or scissors: ";     // prompt
+    string user;
+    getline(cin, user);    // read player's choice
+    for (auto &c : user) {     // convert to lowercase
+        c = tolower(c);
+    }
+    cout << "Computer chose: " << opts[comp] << endl;    // reveal computer's choice
+    if (user == opts[comp]) {
+        cout << "It's a tie!" << endl;  //tie
+    } else if ((user == "rock" && comp == 2) || 
+               (user == "paper" && comp == 0) ||   
+               (user == "scissors" && comp == 1)) {  // check if player wins
+        cout << "You win!" << endl;
+        score += 10;        // award points
+        addItem("RPS Champion Trophy");    //add trophy
+    } else {        // player loses
+        cout << "You lose!" << endl;
+    }
+}
+
+// ==================================================================
+// MINI-GAME 9: Dice Roll Challenge
+// ==================================================================
+void playDiceRoll() {
+    cout << "MINI-GAME: Dice Roll Challenge!🎲" << endl; // Title
+    int d1 = rand() % 6 + 1;    // Random dice roll 1
+    int d2 = rand() % 6 + 1;    // Random dice roll 2
+    int total = d1 + d2;        // Sum of dice rolls
+    cout << "Guess the sum of two dice (2–12): ";   // prompt
+    int guess;
+    cin >> guess;    
+    cin.ignore();    // read player's guess 
+    if (guess == total) {      // check if correct
+        cout << "Correct! The dice 🎲 summed to " << total << endl;     // success
+        score += 10;    // award points
+        addItem("Lucky Dice 🎲");            // add item
+    } else {
+        cout << "Wrong ❌. It was " << total << endl;           // failure with revealed answer
+    }
+}
+
+// ==================================================================
+// MINI-GAME 10: Coin Flip
+// ==================================================================
+
+void playCoinFlip() {
+    cout << "MINI-GAME: Coin Flip!🪙" << endl;
+    cout << "Guess heads or tails: ";
+    string guess;
+    getline(cin, guess);
+    for (auto &c : guess) c = tolower(c);
+
+    int flip = rand() % 2; // 0 will equal heads, 1 will equal tails
+    string result = (flip == 0) ? "heads" : "tails";
+    cout << "The coin 🪙landed on: " << result << endl;
+
+    if (guess == result) {
+        cout << "You guessed right! You win a Lucky Penny!🪙" << endl;
+        score += 5;
+        addItem("Lucky Penny");
+    } else {
+        cout << "Better luck next time!" << endl;
+    }
+}
+
+
+// ==================================================================
+// ASCII art for intro & graduation
+// ==================================================================
+
+// first ascii art
+void printIntroArt() 
+{
+    cout << R"ASCII(
+           +------------------------------------------------------------+
+           | _____ _   _ _____   _____ ___ _   _    _    _              |
+           ||_   _| | | | ____| |  ___|_ _| \ | |  / \  | |             |
+           |  | | | |_| |  _|   | |_   | ||  \| | / _ \ | |             |
+           |  | | |  _  | |___  |  _|  | || |\  |/ ___ \| |___          |
+           |  |_|_|_|_|_|_____| |_|___|___|_| \_/_/   \_\_____|         |
+           |   / ___| |      / \  / ___/ ___|   _                       |
+           |  | |   | |     / _ \ \___ \___ \  (_)                      |
+           |  | |___| |___ / ___ \ ___) |__) |  _                       |
+           |  _\____|_____/_/_  \_\____/____/  (_) _____ ___ ___  _   _ |
+           | / ___|  _ \    / \  |  _ \| | | | / \|_   _|_ _/ _ \| \ | ||
+           || |  _| |_) |  / _ \ | | | | | | |/ _ \ | |  | | | | |  \| ||
+           || |_| |  _ <  / ___ \| |_| | |_| / ___ \| |  | | |_| | |\  ||
+           | \____|_|_\_\/_/ __\_\____/_\___/_/   \_\_| |___\___/|_| \_||
+           | / ___|  _ \|_ _/ ___|_ _/ ___|                             |
+           || |   | |_) || |\___ \| |\___ \                             |
+           || |___|  _ < | | ___) | | ___) |                            |
+           | \____|_| \_\___|____/___|____/                             |
+           +------------------------------------------------------------+
+        )ASCII" << endl;
+}
+
+
+//2nd ascii art
+// display graduation art
+void printGradArt() {
+     cout << R"ASCII(
+         ╔╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╤╗
+         ╟┼┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┼╢
+         ╟┤  ____ ___  _   _  ____ ____      _  _____ _____ ____  _ ├╢
+         ╟┤ / ___/ _ \| \ | |/ ___|  _ \    / \|_   _| ____/ ___|| |├╢
+         ╟┤| |  | | | |  \| | |  _| |_) |  / _ \ | | |  _| \___ \| |├╢
+         ╟┤| |__| |_| | |\  | |_| |  _ <  / ___ \| | | |___ ___) |_|├╢
+         ╟┤ \____\___/|_| \_|\____|_| \_\/_/   \_\_| |_____|____/(_)├╢
+         ╟┼┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┬┼╢
+         ╚╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╧╝
+         
+         "************************************" 
+         " *  🎓 YOU HAVE GRADUATED! 🎓  *"  
+         "************************************")ASCII" << endl;
+
+} //for all emojis I used the website - https://emojipedia.org/dizzy
+//for the ascii art I used the website - https://www.asciiart.eu/
+
+
+// ==================================================================
+// Handle user input at each location
+// ==================================================================
+// Returns true if player used "go", false if used "leave"
+bool handleLocation(Location &loc, vector<Location> &map, int &currentLocationIndex)
+{
+    loc.display();      // show the name & description of the current location
+    while (true) {      // start a loop to keep asking for player actions until they choose to leave
+        cout << "What would you like to do? (Type 'help'): ";    // prompt the player for their next action
+        string cmd;     // store the player's input
+        getline(cin, cmd);    // read the player's input
+
+        // convert input to lowercase for easier comparison
+        for (auto &c : cmd) {
+            c = tolower(c);
+        }
+
+        if (cmd == "help") {  // type"help"
+            cout << "Available actions:" << endl;  //  list of valid actions for the current location
+            for (auto &a : loc.actions) {
+                cout << "- " << a << endl;    // print each action
+            }
+            cout << "- go [location name]" << endl;  // write location name
+            cout << "- leave" << endl;   //or write leave to move to the next location
+        }
+        else if (cmd == "inventory") {    // type"inventory"
+            showInventory();        // show the player's current inventory
+        }
+        else if (cmd == "explore") {
+    vector<string> exploreMessages = {
+        "You walk around, looking at the ceiling and almost trip over your own feet. Nothing new here.",
+        "You find a suspicious looking paperclip. But you're too scared to touch it. Who knows where its been, right?",
+        "A professor eyes you suspiciously as he watches you rummage around. And then, you find nothing.",
+        "You hear distant footsteps. You find nothing. This is another normal, exciting day for you at CCNY!",
+        "You check every corner. Still nothing, but maybe a bit of hope to graduate?",
+        "You decide to look under a chair. You find nothing, yet again.",
+        "You look under a nearby vending machine. You find ... nothing.",
+        "You wander aimlessly and accidentally walk into a closed door. At least no one saw you.",
+        "You stare out the window, hoping for inspiration. All you get is a view of pigeons judging you deeply.",
+        "You check under a carpet and discover... more floor!",
+        "You poke at a suspicious stain on the wall. It doesn’t you poke back.",
+        "You try to blend in with a group of students. They ignore you, and you learn nothing.",
+        "You accidentally step on something sinister. An unfinished calculus problem set. Half the answers are guesses. The rest are blank."
+    };
+    int roll = rand() % 20;
+    if (roll == 0) {
+        cout << "You find a shiny quarter on the ground! Lucky day! 🪙" << endl;
+        score += 1;
+        addItem("Shiny Quarter");
+    } else if (roll == 1) {
+        cout << "A man dressed in an extremely oversized CCNY hoodie runs past, dropping a pin." << endl;
+        score += 3;
+        addItem("CCNY Benny Pin");
+    } else if (roll == 2) {
+        cout << "You find a mysterious glittery pink pen, with a pompom topper on the floo" << endl;
+        score += 1;
+        addItem("PomPom Pen");
+    } else if (roll == 3) {
+        cout << "You find a small keychain! It's Benny the Beaver!" << endl;
+        score += 5;
+        addItem("Benny Keychain");
+    } else {
+        cout << exploreMessages[rand() % exploreMessages.size()] << endl;
+    }
+}
+
+        else if (cmd.find("go ", 0) == 0) { // If command starts with "go "
+            string dest = cmd.substr(3); // Get everything after "go "
+            bool found = false;      
+            for (int i = 0; i < map.size(); ++i) {    // Search for the destination in the map
+                string lowerName = map[i].name;
+                for (auto &c : lowerName) c = tolower(c);
+                if (dest == lowerName) {
+                    cout << "Traveling to " << map[i].name << "..." << endl;  // Found the destination
+                    cout <<"" <<endl;
+                    currentLocationIndex = i;  // Update the current location index
+                    found = true;  
+                    break;
+                }
+            }
+            if (found) {
+                return true; // Used "go"
+            } else {
+                cout << "No such location. Type 'help' for available actions." << endl;  // Destination not found
+            }
+        }
+        else if (cmd == "search for checklist" && loc.name == "Library") {  //type"search for checklist"
+            bool has = false;   // Check if player already has the checklist
+            for (auto &it : inventory) {   //loop through inventory
+                if (it.name == "Checklist") {   // Check if checklist is in inventory
+                    has = true;    // Set flag to true if found
+                    break;
+                }
+            }
+            if (!has) {     // If checklist not found in inventory
+                cout << "You find your Graduation Checklist tucked in a book!" << endl;  // Announce finding checklist
+                score += 5;  // Award points 
+                addItem("Checklist");    // Add checklist to inventory
+            } else {
+                cout << "You already grabbed the Checklist here." << endl;     // If checklist already in inventory
+            }
+        }
+        else if (cmd == "read book" && loc.name == "Library") {    //type"read book"
+            cout << "You flip through an old tome—it hints at a secret safe code." << endl;    // Announce finding a clue
+        }
+        else if (cmd == "ask for coffee" && loc.name == "Cafeteria") {    //type"ask for coffee"
+            cout << "You grab a cup of coffee and feel energized (+2 points)!" << endl;    // Announce finding coffee
+            score += 2;    // Award points
+            addItem("Coffee Mug");    // Add coffee mug to inventory
+        }
+        else if (cmd == "search for keycard" && loc.name == "Marshak Hall") {    //type"search for keycard"
+            bool has = false;     // Check if player already has the keycard
+            for (auto &it : inventory) {   //loop through inventory
+                if (it.name == "Keycard") {    // Check if keycard is in inventory
+                    has = true;
+                    break;
+                }
+            }
+            if (!has) {     // If keycard not found in inventory
+                cout << "You scour the hall and find a shiny Keycard!" << endl;
+                score += 5;    // Award points
+                addItem("Keycard");    // Add keycard to inventory
+            } else {
+                cout << "You already picked up the Keycard here." << endl;     // If keycard already in inventory
+            }
+        }
+        else if (cmd == "open safe" && loc.name == "Safe Room") {
+            playSafeCrack();    // Play the safe-cracking mini-game
+        }
+        else if (cmd == "hack printer" && loc.name == "Tech Center") {    //type"hack printer"
+            playLockPicking();    // Play the lock-picking mini-game
+        }
+        else if (cmd == "reaction challenge" && loc.name == "Underground Tunnel") {    //type"reaction challenge"
+            playReaction();    // Play the reaction challenge mini-game
+        }
+        else if (cmd == "memory game" && loc.name == "Observatory Deck") {    //type"memory game"
+            playMemory();    // Play the memory sequence mini-game
+        }
+        else if (cmd == "word puzzle" && loc.name == "Writing Center") {    //type"word puzzle"
+            playWordPuzzle();    // Play the word puzzle mini-game
+        }
+        else if (cmd == "play trivia" && loc.name == "Student Government Office") {    //type"play trivia"
+            playTrivia();    // Play the trivia quiz mini-game
+        }
+        else if (cmd == "math challenge" && loc.name == "Math Building") {    //type"math challenge"
+            playMathChallenge();    // Play the math challenge mini-game
+        }
+        else if (cmd == "play rps" && loc.name == "Gaming Lounge") {
+            playRockPaperScissors();    // Play the rock-paper-scissors mini-game
+        }
+        else if (cmd == "roll dice" && loc.name == "Dice Hall") {
+            playDiceRoll();    // Play the dice roll challenge mini-game
+        }
+        else if (cmd == "coin flip" && loc.name == "Gaming Lounge") {   //type"coin flip"
+                playCoinFlip(); // play the coin flip mini-game
+            }
+        else if (cmd == "talk to npc") {    //type"talk to npc"
+            bool spoke = false;
+            for (auto &n : npcs) {   // Loop through all NPCs
+                if (n.locationName == loc.name) {   // Find NPC in the current location
+                    n.speak();    // NPC speaks
+                    spoke = true;
+                }
+            }
+            if (!spoke) {   // If no NPC found in the current location
+                cout << "There's no one here to talk to." << endl;
+            }   // If NPC found and spoken to
+        }
+        else if (cmd == "submit project" && loc.name == "Registrar's Office") {    //type"submit project"
+            cout << "You hand over your final C++ project receipt." << endl;     // Announce submission
+            score += 10;    // Award points
+        }
+        else if (cmd == "leave") {    //type"leave"
+            cout << "Leaving 🏃 " << loc.name << "..." << endl;
+            cout << endl;
+            return false; // Used "leave"
+        }
+        else {
+            cout << "Invalid. Type 'help'." << endl;   // Invalid command
+        }
+    }
+}
+
+// ==================================================================
+// Main – sets up NPCs, map, prints intro/rules, runs the loop
+// ==================================================================
+int main() {
+    srand((unsigned)time(nullptr));   // seed rand()
+
+    // NPC setup
+    npcs.emplace_back("NAC Lobby",        "There is a keycard at Marshak that you want to find!");
+    npcs.emplace_back("Registrar's Office","Do not speak to me unless it is to submit your project.");
+    npcs.emplace_back("Cafeteria",      "Sometimes a cup of coffee is what keeps you going!!!");
+    npcs.emplace_back("Library",       "Remember to find your checklist!");
+    npcs.emplace_back("Gaming Lounge", "Do you like to play games?");
+    npcs.emplace_back("Dice Hall",     "Do you think you will graduate?");
+    // Define all campus locations
+    vector<Location> map = {
+        {"NAC Lobby",          "Students bustle around the lobby. You are at the heart of City College.",          {"help","talk to npc","inventory"}},
+        {"Marshak Hall",       "The hospital white walls and floor tiles are your home. The smell of coffee always lingers here.",             {"help","search for keycard","explore","inventory","leave"}},
+        {"Shepard Hall",       "Gothic grandeur in the midst of Manhattan. You can tell you're in an ancient space.",             {"help","explore","inventory"}},
+        {"Wingate Hall",       "Fluoroscent lights flicker as the athletes practice here. It's your first time here, isn't it?",                    {"help","explore","inventory"}},
+        {"Baskerville Hall",   "Dimly lit biology labs and so many microscopes. This place has secrets.",               {"help","explore","inventory"}},
+        {"Architecture Building","There is a buzz of creative chaos in the air. Walls are lined with blueprints, and the scent of coffee mixed with glue is strange.",               {"help","explore","inventory"}},
+        {"NAC CS Department",  "A clatter of keyboard keys is heard in an echo as you enter. C++ panic mode activated.",                  {"help","explore","inventory"}},
+        {"Tech Center",        "The safe haven for last-minute essays and coders. There's a broken printer flashing red like a warning beacon, ignored by all but you.",               {"help","hack printer","inventory"}},
+        {"Library",            "Quiet study rooms and ancient books. Time seems to be standing still in here, doesn't it?",        {"help","search for checklist", "talk to npc", "read book","inventory"}},
+        {"Cafeteria",          "The cafeteria is buzzing with life today. You are enamored by the smell of fresh coffee.",                 {"help","ask for coffee","talk to npc", "explore","inventory"}},
+        {"Financial Aid Office","A long line and tense atmosphere.You need all your documents and hope to get through here.",          {"help","explore","inventory"}},
+        {"Registrar's Office", "Paperwork towers over counters. Are you ready to do what you're here for?",            {"help","talk to npc","submit project","inventory"}},
+        {"Student Government Office","Campaign posters line the walls. Remember to vote for the new student government.",    {"help","play trivia","inventory"}},
+        {"Art Gallery",        "A painting stares deeply into your soul. Do you have it in you to stare right back?",    {"help","explore","inventory"}},
+        {"Secret Rooftop Garden","You didn't know this place exists. But it does, and the flowers bloom above the chaos.",           {"help","explore","inventory"}},
+        {"Math Building",      "The blackboards are covered with equations. Signs for the tutoring sessions are everywhere.",           {"help","math challenge","inventory"}},
+        {"Science Center",     "Beakers bubble mysteriously. Do not touch anything!",               {"help","explore","inventory"}},
+        {"Gymnasium",          "Echoes of dribbling basketballs. They still haven't opened the pool they've been renovation for about three hundred years now.",           {"help","explore","inventory"}},
+        {"Career Center",      "Resume critiques and mock interviews happening now! Sign up!",       {"help","explore","inventory"}},
+        {"Writing Center",     "Tutors await your best prose here. There is an old age typewriter by the window.",               {"help","word puzzle","inventory"}},
+        {"Black Box Theater",  "Stage lights are dimmed. Watch your step.",                       {"help","explore","inventory"}},
+        {"Underground Tunnel", "You need to be careful here between the echoes and flickering lights. Be aware of everything you do!",               {"help","reaction challenge","inventory"}},
+        {"Observatory Deck",   "Telescopes pointing skyward. Go explore the Manhattan skylines!",                {"help","memory game","inventory"}},
+        {"Safe Room",          "Have you ever seen such a suspicious-looking safe? You have to open it!",          {"help","open safe","inventory"}},
+        {"Gaming Lounge",      "Retro consoles flicker and the arcade machines glow. This dimly lit space smells of nostalgia, and gamers.",      {"help","play rps","talk to npc", "inventory"}},
+        {"Dice Hall",          "Tables of dice and chips await your luck. Are you ready for it...?",   {"help","roll dice","talk to npc", "inventory"}},
+        {"Graduation Stage",   "Time to find out if you made it!",          {"inventory"}}
+    };
+
+    // Intro & rules
+
+
+   printIntroArt();
+    cout << "Welcome! Enter your name: ";
+    getline(cin, playerName);
+
+    cout << endl;
+    cout << "Hello, " << playerName << "! It's your last day to graduate." << endl << endl;
+    cout << "=== GAME RULES & WIN CONDITIONS ===" << endl << endl;
+    cout << "Your tasks today:" << endl;
+    cout << "- Find & collect Checklist, Keycard, Receipt, etc." << endl;
+    cout << "- Complete mini-games to earn points & collect new items!" << endl;
+    cout << "- Submit your project at the Registrar's Office." << endl;
+    cout << "- Reach the Graduation Stage." << endl << endl;
+    cout << "To GRADUATE:" << endl;
+    cout << "- With Honors: 60+ points AND ≥7 items" << endl;
+    cout << "- Just in time: 40+ points AND ≥5 items" << endl << endl;
+    cout << "Basic commands:" << endl << "1. help: shows a list of available commands and what they do." << endl << "2. explore: search your current surroundings." << endl << "3. inventory: shows the items you're currently carrying." << endl << "4. go [location name]: takes you to a specific place at CCNY." << endl << "5. leave: takes you to the next location, you must visit all to complete the game." << endl << endl;
+
+        cout << "Locations at CCNY:" << endl
+             << "1. NAC Lobby" << endl
+             << "2. Marshak Hall" << endl
+             << "3. Shepard Hall" << endl
+             << "4. Wingate Hall" << endl
+             << "5. Baskerville Hall" << endl
+             << "6. Architecture Building" << endl
+             << "7. NAC CS Department" << endl
+             << "8. Tech Center" << endl
+             << "9. Library" << endl
+             << "10. Cafeteria" << endl
+             << "11. Financial Aid Office" << endl
+             << "12. Registrar's Office" << endl
+             << "13. Student Government Office" << endl
+             << "14. Art Gallery" << endl
+             << "15. Secret Rooftop Garden" << endl
+             << "16. Math Building" << endl
+             << "17. Science Center" << endl
+             << "18. Gymnasium" << endl
+             << "19. Career Center" << endl
+             << "20. Writing Center" << endl
+             << "21. Black Box Theater" << endl
+             << "22. Underground Tunnel" << endl
+             << "23. Observatory Deck" << endl
+             << "24. Safe Room" << endl
+             << "25. Gaming Lounge" << endl
+             << "26. Dice Hall" << endl
+             << "27. Graduation Stage" << endl
+             << endl
+             << "Type 'help' at each location to see special actions." << endl
+             << endl;
+    cout << "Press Enter to begin your journey..." << endl;
+
+    cin.get();
+
+
+    // Main game loop
+  int currentLocationIndex = 0;
+while (true) {
+    bool usedGo = handleLocation(map[currentLocationIndex], map, currentLocationIndex);
+    if (map[currentLocationIndex].name == "Graduation Stage") break;
+    if (!usedGo) {
+        // only increases if player used leave
+        currentLocationIndex++;
+        if (currentLocationIndex >= map.size()) break;
+    }
+    // If usedgo then the currentLocationIndex is already set
+}
+
+
+    // Endgame summary
+    cout << "Your final score: " << score << endl;
+    if (score >= 60 && inventory.size() >= 7) {
+        cout << endl;
+        cout << "🎉🎉🎉🎉🎉Congratulations 🎉🎉🎉🎉🎉, " << playerName << "! You graduated 👩‍🎓 with honors!" << endl;
+        printGradArt();
+    }
+    else if (score >= 40 && inventory.size() >= 5) {
+        cout <<  endl;
+        cout << "🎓 Well done, " << playerName << "! You graduated 👩‍🎓 just in time." << endl;
+        printGradArt();
+    }
+    else {
+        cout << endl;
+        cout << "😢 Sorry, " << playerName << ". You didn't collect enough to graduate." << endl;
+    }
+
+    cout << "Thanks for playing!" << endl;
+    return 0;
+}
